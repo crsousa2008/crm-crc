@@ -10,40 +10,57 @@
 </head>
 <body class="bg-slate-100 font-sans text-slate-800">
 
+  <div id="app" class="min-h-screen flex flex-col justify-center items-center">
+    <div id="loading" class="text-center">
+      <i class="fas fa-circle-notch fa-spin text-4xl text-blue-600 mb-4"></i>
+      <p class="text-slate-600 font-semibold font-sans">Carregando CRM CRC Telecom...</p>
+    </div>
+  </div>
+
   <script>
     // Conexão direta com o seu banco de dados Supabase
     const SUPABASE_URL = "https://jnjusiwhzxfzqzbfcenz.supabase.co";
     const SUPABASE_KEY = "sb_publishable_lORGDKUVrHh8q7XIpqLMYA_yRmQ9lF1"; 
     
-    // Inicializa o cliente do Supabase globalmente
-    const _supabase = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
-  </script>
-
-  <div id="app" class="min-h-screen flex flex-col justify-center items-center">
-    <div id="loading" class="text-center">
-      <i class="fas fa-circle-notch fa-spin text-4xl text-blue-600 mb-4"></i>
-      <p class="text-slate-600 font-semibold">Carregando CRM CRC Telecom...</p>
-    </div>
-  </div>
-
-  <script>
+    let _supabase = null;
     const app = document.getElementById('app');
     let session = null;
     let activeTab = 'clientes';
     let serviceTypes = [];
     let selectedServiceFields = [];
+    let mobileMenuOpen = false; // Controle do menu móvel
 
-    // Detecta se o usuário já tem uma sessão ativa
+    // Inicialização segura garantindo que o SDK do Supabase está disponível
     window.onload = async () => {
-      const { data } = await _supabase.auth.getSession();
-      session = data.session;
-      renderApp();
-
-      // Observa mudanças no estado de login (login, logout, etc.)
-      _supabase.auth.onAuthStateChange((_event, _session) => {
-        session = _session;
+      try {
+        if (typeof supabase === 'undefined') {
+          throw new Error("A biblioteca do Supabase não pôde ser carregada. Verifique sua conexão.");
+        }
+        
+        _supabase = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+        
+        const { data, error } = await _supabase.auth.getSession();
+        if (error) throw error;
+        
+        session = data.session;
         renderApp();
-      });
+
+        _supabase.auth.onAuthStateChange((_event, _session) => {
+          session = _session;
+          renderApp();
+        });
+
+      } catch (err) {
+        console.error(err);
+        app.innerHTML = `
+          <div class="bg-white p-6 rounded-xl shadow-lg max-w-sm mx-4 text-center border border-red-200">
+            <i class="fas fa-exclamation-triangle text-red-500 text-4xl mb-3"></i>
+            <h3 class="text-lg font-bold text-slate-800">Erro de Inicialização</h3>
+            <p class="text-sm text-slate-600 mt-2">${err.message}</p>
+            <button onclick="window.location.reload()" class="mt-4 bg-blue-600 hover:bg-blue-700 text-white font-bold px-4 py-2 rounded-lg text-sm transition w-full">Tentar Novamente</button>
+          </div>
+        `;
+      }
     };
 
     function renderApp() {
@@ -54,28 +71,28 @@
       }
     }
 
-    // TELA DE LOGIN
+    // TELA DE LOGIN RESPONSIVA
     function renderLogin() {
-      app.className = "min-h-screen flex flex-col justify-center items-center bg-slate-100 w-full";
+      app.className = "min-h-screen flex flex-col justify-center items-center bg-slate-100 w-full p-4";
       app.innerHTML = `
-        <div class="bg-white p-8 rounded-xl shadow-lg w-full max-w-md border border-slate-200">
+        <div class="bg-white p-6 md:p-8 rounded-xl shadow-lg w-full max-w-md border border-slate-200">
           <div class="text-center mb-6">
-            <img src="https://jnjusiwhzxfzqzbfcenz.supabase.co/storage/v1/object/public/logos/logo.png" alt="CRC Telecom" class="h-16 mx-auto mb-4 object-contain">
+            <img src="https://jnjusiwhzxfzqzbfcenz.supabase.co/storage/v1/object/public/logos/logo.png" alt="CRC Telecom" class="h-14 md:h-16 mx-auto mb-4 object-contain">
             <h2 class="text-2xl font-bold text-slate-800">Painel CRM</h2>
             <p class="text-slate-500 text-sm">Entre com suas credenciais para acessar</p>
           </div>
           <form id="login-form" class="space-y-4">
             <div>
               <label class="block text-sm font-semibold mb-1 text-slate-700">E-mail</label>
-              <input type="email" id="login-email" required class="w-full p-3 border border-slate-350 rounded-lg focus:ring-2 focus:ring-blue-500 focus:outline-none" placeholder="seuemail@crctelecom.com">
+              <input type="email" id="login-email" required class="w-full p-3 border border-slate-350 rounded-lg focus:ring-2 focus:ring-blue-500 focus:outline-none text-sm" placeholder="seuemail@crctelecom.com">
             </div>
             <div>
               <label class="block text-sm font-semibold mb-1 text-slate-700">Senha</label>
-              <input type="password" id="login-password" required class="w-full p-3 border border-slate-350 rounded-lg focus:ring-2 focus:ring-blue-500 focus:outline-none" placeholder="••••••••">
+              <input type="password" id="login-password" required class="w-full p-3 border border-slate-350 rounded-lg focus:ring-2 focus:ring-blue-500 focus:outline-none text-sm" placeholder="••••••••">
             </div>
-            <button type="submit" class="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold p-3 rounded-lg transition shadow-md">Entrar</button>
+            <button type="submit" class="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold p-3 rounded-lg transition shadow-md text-sm">Entrar</button>
           </form>
-          <div id="login-error" class="text-red-500 text-sm mt-3 text-center hidden font-semibold"></div>
+          <div id="login-error" class="text-red-500 text-xs mt-3 text-center hidden font-semibold"></div>
         </div>
       `;
 
@@ -93,13 +110,23 @@
       });
     }
 
-    // LAYOUT PRINCIPAL DO SISTEMA
+    // LAYOUT RESPONSIVO COM MENU HAMBÚRGUER MÓVEL
     function renderDashboard() {
-      app.className = "min-h-screen flex bg-slate-100 w-full";
+      app.className = "min-h-screen flex flex-col md:flex-row bg-slate-100 w-full";
       app.innerHTML = `
-        <aside class="w-64 bg-slate-900 text-white flex flex-col justify-between p-4 flex-shrink-0 shadow-xl">
+        <header class="md:hidden w-full bg-slate-900 text-white flex items-center justify-between p-4 shadow-md sticky top-0 z-40">
+          <div class="flex items-center gap-2">
+            <img src="https://jnjusiwhzxfzqzbfcenz.supabase.co/storage/v1/object/public/logos/logo.png" alt="CRC Telecom" class="h-8 w-auto object-contain">
+            <span class="font-bold text-xs tracking-wider">CRC TELECOM</span>
+          </div>
+          <button onclick="toggleMobileMenu()" class="text-white text-xl focus:outline-none p-1">
+            <i class="fas ${mobileMenuOpen ? 'fa-times' : 'fa-bars'}"></i>
+          </button>
+        </header>
+
+        <aside id="sidebar" class="fixed inset-y-0 left-0 z-35 w-64 bg-slate-900 text-white flex flex-col justify-between p-4 transform ${mobileMenuOpen ? 'translate-x-0' : '-translate-x-full'} md:translate-x-0 md:static md:h-screen transition-transform duration-300 ease-in-out flex-shrink-0 shadow-xl">
           <div>
-            <div class="flex items-center gap-3 mb-8 px-2 py-4 border-b border-slate-800">
+            <div class="hidden md:flex items-center gap-3 mb-8 px-2 py-4 border-b border-slate-800">
               <img src="https://jnjusiwhzxfzqzbfcenz.supabase.co/storage/v1/object/public/logos/logo.png" alt="CRC Telecom" class="h-10 w-auto object-contain">
               <div class="flex flex-col">
                 <span class="font-bold text-xs tracking-wider text-slate-200">CRC TELECOM</span>
@@ -107,7 +134,7 @@
               </div>
             </div>
 
-            <nav class="space-y-1">
+            <nav class="space-y-1 mt-12 md:mt-0">
               <button onclick="changeTab('clientes')" class="w-full text-left px-4 py-2.5 rounded-lg flex items-center gap-3 transition ${activeTab === 'clientes' ? 'bg-blue-600 text-white font-bold shadow' : 'hover:bg-slate-800 text-slate-400'}">
                 <i class="fas fa-users w-5 text-center"></i> Clientes
               </button>
@@ -128,15 +155,24 @@
           </div>
         </aside>
 
-        <main class="flex-grow p-8 overflow-y-auto" id="main-content">
+        <div id="backdrop" onclick="toggleMobileMenu()" class="fixed inset-0 bg-black bg-opacity-50 z-30 md:hidden ${mobileMenuOpen ? 'block' : 'hidden'}"></div>
+
+        <main class="flex-grow p-4 md:p-8 overflow-y-auto" id="main-content">
           </main>
       `;
 
       renderTabContent();
     }
 
+    // ALTERNAR MENU LATERAL NO CELULAR
+    function toggleMobileMenu() {
+      mobileMenuOpen = !mobileMenuOpen;
+      renderDashboard();
+    }
+
     function changeTab(tabName) {
       activeTab = tabName;
+      mobileMenuOpen = false; // Fecha o menu lateral após trocar de aba
       renderDashboard();
     }
 
@@ -144,19 +180,423 @@
       await _supabase.auth.signOut();
     }
 
-    // RENDERIZADOR DE TELAS INTERNAS
+    // RENDERIZADOR DE TELAS INTERNAS RESPONSIVO
     async function renderTabContent() {
       const container = document.getElementById('main-content');
       
       if (activeTab === 'clientes') {
         container.innerHTML = `
-          <div class="flex justify-between items-center mb-6">
+          <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-6">
             <h1 class="text-2xl font-bold text-slate-850">Gestão de Clientes</h1>
-            <button onclick="openClientModal()" class="bg-blue-600 text-white px-4 py-2 rounded-lg font-bold hover:bg-blue-700 transition shadow">
-              <i class="fas fa-plus"></i> Novo Cliente
+            <button onclick="openClientModal()" class="w-full sm:w-auto bg-blue-600 text-white px-4 py-2.5 rounded-lg font-bold hover:bg-blue-700 transition shadow text-sm">
+              <i class="fas fa-plus mr-1"></i> Novo Cliente
             </button>
           </div>
-          <div class="bg-white rounded-xl shadow border border-slate-200 overflow-hidden">
-            <table class="w-full text-left border-collapse">
+          <div class="bg-white rounded-xl shadow border border-slate-200 overflow-x-auto">
+            <table class="w-full text-left border-collapse min-w-[600px]">
               <thead>
-                <tr class="bg
+                <tr class="bg-slate-50 border-b border-slate-200 text-xs font-bold uppercase text-slate-500">
+                  <th class="p-4">Nome</th>
+                  <th class="p-4">Tipo</th>
+                  <th class="p-4">Documento</th>
+                  <th class="p-4">Telefone</th>
+                  <th class="p-4">E-mail</th>
+                </tr>
+              </thead>
+              <tbody id="clients-table-body">
+                <tr><td colspan="5" class="p-4 text-center text-slate-500">Buscando clientes...</td></tr>
+              </tbody>
+            </table>
+          </div>
+        `;
+        loadClients();
+      }
+
+      else if (activeTab === 'servicos') {
+        container.innerHTML = `
+          <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-6">
+            <h1 class="text-2xl font-bold text-slate-850">Padrões de Serviços</h1>
+            <button onclick="openServiceModal()" class="w-full sm:w-auto bg-emerald-600 text-white px-4 py-2.5 rounded-lg font-bold hover:bg-emerald-700 transition shadow text-sm">
+              <i class="fas fa-plus mr-1"></i> Criar Tipo de Serviço
+            </button>
+          </div>
+          <div class="grid grid-cols-1 lg:grid-cols-2 gap-6" id="services-container">
+            <p class="text-slate-500">Buscando padrões de serviços...</p>
+          </div>
+        `;
+        loadServices();
+      }
+
+      else if (activeTab === 'atendimentos') {
+        container.innerHTML = `
+          <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-6">
+            <h1 class="text-2xl font-bold text-slate-850">Ordens de Atendimento</h1>
+            <button onclick="openRecordModal()" class="w-full sm:w-auto bg-blue-600 text-white px-4 py-2.5 rounded-lg font-bold hover:bg-blue-700 transition shadow text-sm">
+              <i class="fas fa-plus mr-1"></i> Novo Atendimento
+            </button>
+          </div>
+          <div class="bg-white rounded-xl shadow border border-slate-200 overflow-x-auto">
+            <table class="w-full text-left border-collapse min-w-[650px]">
+              <thead>
+                <tr class="bg-slate-50 border-b border-slate-200 text-xs font-bold uppercase text-slate-500">
+                  <th class="p-4">Cliente</th>
+                  <th class="p-4">Serviço</th>
+                  <th class="p-4">Status</th>
+                  <th class="p-4">Dados Dinâmicos Coletados</th>
+                </tr>
+              </thead>
+              <tbody id="records-table-body">
+                <tr><td colspan="4" class="p-4 text-center text-slate-500">Buscando atendimentos...</td></tr>
+              </tbody>
+            </table>
+          </div>
+        `;
+        loadRecords();
+      }
+    }
+
+    // CARREGAR CLIENTES DO BANCO
+    async function loadClients() {
+      const { data, error } = await _supabase.from('customers').select('*').order('name');
+      const tbody = document.getElementById('clients-table-body');
+      if (error || !data || data.length === 0) {
+        tbody.innerHTML = `<tr><td colspan="5" class="p-4 text-center text-slate-500">Nenhum cliente cadastrado no sistema.</td></tr>`;
+        return;
+      }
+      tbody.innerHTML = data.map(c => `
+        <tr class="border-b border-slate-100 hover:bg-slate-50 transition text-sm">
+          <td class="p-4 font-semibold text-slate-900">${c.name}</td>
+          <td class="p-4"><span class="px-2.5 py-1 text-[10px] font-bold rounded ${c.type === 'B2B' ? 'bg-indigo-100 text-indigo-800' : 'bg-green-100 text-green-800'}">${c.type}</span></td>
+          <td class="p-4 text-slate-600">${c.document || '-'}</td>
+          <td class="p-4 text-slate-600">${c.phone || '-'}</td>
+          <td class="p-4 text-slate-600">${c.email || '-'}</td>
+        </tr>
+      `).join('');
+    }
+
+    // MODAL DE NOVO CLIENTE RESPONSIVO
+    function openClientModal() {
+      const modalHtml = `
+        <div id="modal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <div class="bg-white p-6 rounded-xl shadow-lg w-full max-w-md overflow-y-auto max-h-[90vh]">
+            <h3 class="text-lg font-bold mb-4">Cadastrar Novo Cliente</h3>
+            <form id="client-form" class="space-y-4">
+              <div>
+                <label class="block text-xs font-bold mb-1">Nome / Razão Social</label>
+                <input type="text" id="c-name" required class="w-full p-2 border rounded focus:ring-1 focus:ring-blue-500 focus:outline-none text-sm">
+              </div>
+              <div>
+                <label class="block text-xs font-bold mb-1">Tipo de Perfil</label>
+                <select id="c-type" class="w-full p-2 border rounded focus:outline-none text-sm">
+                  <option value="B2C">B2C (Residencial / Física)</option>
+                  <option value="B2B">B2B (Empresa / Jurídica)</option>
+                </select>
+              </div>
+              <div>
+                <label class="block text-xs font-bold mb-1">CPF / CNPJ</label>
+                <input type="text" id="c-document" class="w-full p-2 border rounded focus:ring-1 focus:ring-blue-500 focus:outline-none text-sm">
+              </div>
+              <div>
+                <label class="block text-xs font-bold mb-1">Telefone de Contato</label>
+                <input type="text" id="c-phone" class="w-full p-2 border rounded focus:ring-1 focus:ring-blue-500 focus:outline-none text-sm">
+              </div>
+              <div>
+                <label class="block text-xs font-bold mb-1">E-mail</label>
+                <input type="email" id="c-email" class="w-full p-2 border rounded focus:ring-1 focus:ring-blue-500 focus:outline-none text-sm">
+              </div>
+              <div class="flex justify-end gap-2 pt-2">
+                <button type="button" onclick="closeModal()" class="px-4 py-2 text-slate-600 text-sm">Cancelar</button>
+                <button type="submit" class="px-4 py-2 bg-blue-600 text-white font-bold rounded hover:bg-blue-700 text-sm">Salvar</button>
+              </div>
+            </form>
+          </div>
+        </div>
+      `;
+      document.body.insertAdjacentHTML('beforeend', modalHtml);
+
+      document.getElementById('client-form').addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const name = document.getElementById('c-name').value;
+        const type = document.getElementById('c-type').value;
+        const documentVal = document.getElementById('c-document').value;
+        const phone = document.getElementById('c-phone').value;
+        const email = document.getElementById('c-email').value;
+
+        await _supabase.from('customers').insert({ name, type, document: documentVal, phone, email });
+        closeModal();
+        renderTabContent();
+      });
+    }
+
+    // CARREGAR PADRÕES DE SERVIÇOS
+    async function loadServices() {
+      const { data: types } = await _supabase.from('service_types').select('*');
+      const { data: fields } = await _supabase.from('service_fields').select('*');
+      
+      const container = document.getElementById('services-container');
+      if (!types || types.length === 0) {
+        container.innerHTML = `<p class="text-slate-500 col-span-2">Nenhum serviço ou padrão cadastrado ainda no banco.</p>`;
+        return;
+      }
+
+      container.innerHTML = types.map(t => {
+        const typeFields = fields ? fields.filter(f => f.service_type_id === t.id) : [];
+        return `
+          <div class="bg-white p-5 rounded-xl border border-slate-200 shadow-sm flex flex-col justify-between">
+            <div>
+              <div class="flex items-center justify-between gap-2 mb-2">
+                <h3 class="text-lg font-bold text-slate-800">${t.name}</h3>
+                <button onclick="openAddFieldModal('${t.id}')" class="text-[10px] bg-blue-50 text-blue-600 px-2.5 py-1.5 rounded border border-blue-200 hover:bg-blue-100 transition font-bold shrink-0">
+                  + Add Campo
+                </button>
+              </div>
+              <p class="text-xs text-slate-500">${t.description || 'Sem descrição cadastrada'}</p>
+              
+              <div class="mt-4 space-y-2">
+                <p class="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Campos do Formulário Dinâmico:</p>
+                ${typeFields.length === 0 ? '<p class="text-xs text-slate-400 italic">Nenhum campo definido. Clique em "+ Add Campo" para criar.</p>' : ''}
+                ${typeFields.map(f => `
+                  <div class="flex items-center justify-between text-xs bg-slate-50 p-2 rounded border border-slate-100">
+                    <span class="font-medium text-slate-700 truncate mr-2">${f.label} <span class="text-[10px] text-slate-400">(${f.field_type})</span></span>
+                    <button onclick="deleteField('${f.id}')" class="text-red-500 hover:text-red-700 text-xs transition p-1"><i class="fas fa-trash"></i></button>
+                  </div>
+                `).join('')}
+              </div>
+            </div>
+          </div>
+        `;
+      }).join('');
+    }
+
+    function openServiceModal() {
+      const modalHtml = `
+        <div id="modal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <div class="bg-white p-6 rounded-xl shadow-lg w-full max-w-md">
+            <h3 class="text-lg font-bold mb-4">Novo Tipo de Serviço</h3>
+            <form id="service-form" class="space-y-4">
+              <div>
+                <label class="block text-xs font-bold mb-1">Nome do Padrão (Ex: Viabilidade Técnica)</label>
+                <input type="text" id="s-name" placeholder="Ex: Viabilidade Técnica" required class="w-full p-2 border rounded focus:outline-none text-sm">
+              </div>
+              <div>
+                <label class="block text-xs font-bold mb-1">Descrição do Objetivo</label>
+                <textarea id="s-desc" class="w-full p-2 border rounded focus:outline-none text-sm"></textarea>
+              </div>
+              <div class="flex justify-end gap-2 pt-2">
+                <button type="button" onclick="closeModal()" class="px-4 py-2 text-slate-600 text-sm">Cancelar</button>
+                <button type="submit" class="px-4 py-2 bg-emerald-600 text-white font-bold rounded text-sm">Criar Serviço</button>
+              </div>
+            </form>
+          </div>
+        </div>
+      `;
+      document.body.insertAdjacentHTML('beforeend', modalHtml);
+
+      document.getElementById('service-form').addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const name = document.getElementById('s-name').value;
+        const description = document.getElementById('s-desc').value;
+
+        await _supabase.from('service_types').insert({ name, description });
+        closeModal();
+        renderTabContent();
+      });
+    }
+
+    function openAddFieldModal(serviceTypeId) {
+      const modalHtml = `
+        <div id="modal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <div class="bg-white p-6 rounded-xl shadow-lg w-full max-w-md">
+            <h3 class="text-lg font-bold mb-4">Adicionar Campo Dinâmico</h3>
+            <form id="field-form" class="space-y-4">
+              <div>
+                <label class="block text-xs font-bold mb-1">Nome/Etiqueta do Campo (O que preencher)</label>
+                <input type="text" id="f-label" placeholder="Ex: Distância do Poste (m)" required class="w-full p-2 border rounded focus:outline-none text-sm">
+              </div>
+              <div>
+                <label class="block text-xs font-bold mb-1">Tipo do Campo</label>
+                <select id="f-type" class="w-full p-2 border rounded focus:outline-none text-sm">
+                  <option value="text">Texto livre</option>
+                  <option value="number">Valor Numérico</option>
+                  <option value="boolean">Sim / Não (Caixa de seleção)</option>
+                </select>
+              </div>
+              <div class="flex justify-end gap-2 pt-2">
+                <button type="button" onclick="closeModal()" class="px-4 py-2 text-slate-600 text-sm">Cancelar</button>
+                <button type="submit" class="px-4 py-2 bg-blue-600 text-white font-bold rounded text-sm">Criar Campo</button>
+              </div>
+            </form>
+          </div>
+        </div>
+      `;
+      document.body.insertAdjacentHTML('beforeend', modalHtml);
+
+      document.getElementById('field-form').addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const label = document.getElementById('f-label').value;
+        const field_type = document.getElementById('f-type').value;
+
+        await _supabase.from('service_fields').insert({ service_type_id: serviceTypeId, label, field_type });
+        closeModal();
+        renderTabContent();
+      });
+    }
+
+    async function deleteField(id) {
+      if (confirm("Deseja realmente deletar este campo dinâmico?")) {
+        await _supabase.from('service_fields').delete().eq('id', id);
+        renderTabContent();
+      }
+    }
+
+    // CARREGAR ATENDIMENTOS E JSON DINÂMICO
+    async function loadRecords() {
+      const { data, error } = await _supabase
+        .from('service_records')
+        .select(`
+          id, status, dynamic_data,
+          customers (name),
+          service_types (name)
+        `)
+        .order('created_at', { ascending: false });
+
+      const tbody = document.getElementById('records-table-body');
+      if (error || !data || data.length === 0) {
+        tbody.innerHTML = `<tr><td colspan="4" class="p-4 text-center text-slate-500">Nenhum atendimento registrado.</td></tr>`;
+        return;
+      }
+
+      tbody.innerHTML = data.map(r => `
+        <tr class="border-b border-slate-100 hover:bg-slate-50 transition text-sm">
+          <td class="p-4 font-semibold text-slate-900">${r.customers?.name || 'Cliente deletado'}</td>
+          <td class="p-4 text-slate-700">${r.service_types?.name || 'Serviço deletado'}</td>
+          <td class="p-4"><span class="px-2.5 py-0.5 text-xs font-bold rounded bg-amber-100 text-amber-800">${r.status}</span></td>
+          <td class="p-4">
+            <pre class="bg-slate-900 text-emerald-400 p-2.5 rounded text-[11px] font-mono max-w-xs overflow-x-auto shadow-inner">${JSON.stringify(r.dynamic_data, null, 2)}</pre>
+          </td>
+        </tr>
+      `).join('');
+    }
+
+    // MODAL DE REGISTRO DE ATENDIMENTOS RESPONSIVO
+    async function openRecordModal() {
+      const { data: clients } = await _supabase.from('customers').select('id, name');
+      const { data: services } = await _supabase.from('service_types').select('id, name');
+
+      const modalHtml = `
+        <div id="modal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <div class="bg-white p-6 rounded-xl shadow-lg w-full max-w-lg overflow-y-auto max-h-[90vh]">
+            <h3 class="text-lg font-bold mb-4">Registrar Novo Atendimento</h3>
+            <form id="record-form" class="space-y-4">
+              <div>
+                <label class="block text-xs font-bold mb-1">Selecione o Cliente</label>
+                <select id="r-client" required class="w-full p-2 border rounded focus:outline-none text-sm">
+                  <option value="">Selecione um cliente...</option>
+                  ${clients.map(c => `<option value="${c.id}">${c.name}</option>`).join('')}
+                </select>
+              </div>
+              <div>
+                <label class="block text-xs font-bold mb-1">Selecione o Serviço</label>
+                <select id="r-service" onchange="loadDynamicFieldsInForm(this.value)" required class="w-full p-2 border rounded focus:outline-none text-sm">
+                  <option value="">Selecione o serviço...</option>
+                  ${services.map(s => `<option value="${s.id}">${s.name}</option>`).join('')}
+                </select>
+              </div>
+
+              <div id="dynamic-fields-container" class="bg-slate-50 p-4 rounded border border-dashed border-slate-350 space-y-3 hidden">
+                <p class="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Campos do Serviço Selecionado:</p>
+                <div id="fields-inputs" class="space-y-3"></div>
+              </div>
+
+              <div class="flex justify-end gap-2 pt-2">
+                <button type="button" onclick="closeModal()" class="px-4 py-2 text-slate-600 text-sm">Cancelar</button>
+                <button type="submit" class="px-4 py-2 bg-blue-600 text-white font-bold rounded hover:bg-blue-700 text-sm">Salvar Atendimento</button>
+              </div>
+            </form>
+          </div>
+        </div>
+      `;
+      document.body.insertAdjacentHTML('beforeend', modalHtml);
+    }
+
+    async function loadDynamicFieldsInForm(serviceTypeId) {
+      const container = document.getElementById('dynamic-fields-container');
+      const inputsDiv = document.getElementById('fields-inputs');
+      
+      if (!serviceTypeId) {
+        container.classList.add('hidden');
+        return;
+      }
+
+      const { data: fields } = await _supabase
+        .from('service_fields')
+        .select('*')
+        .eq('service_type_id', serviceTypeId);
+
+      selectedServiceFields = fields || [];
+
+      if (selectedServiceFields.length === 0) {
+        inputsDiv.innerHTML = `<p class="text-xs text-slate-500 italic">Este padrão de serviço não exige campos adicionais dinâmicos.</p>`;
+      } else {
+        inputsDiv.innerHTML = selectedServiceFields.map(f => {
+          if (f.field_type === 'text') {
+            return `
+              <div>
+                <label class="block text-xs font-semibold mb-1 text-slate-700">${f.label}</label>
+                <input type="text" data-label="${f.label}" required class="w-full p-2 border rounded dynamic-input focus:outline-none text-sm">
+              </div>
+            `;
+          } else if (f.field_type === 'number') {
+            return `
+              <div>
+                <label class="block text-xs font-semibold mb-1 text-slate-700">${f.label}</label>
+                <input type="number" data-label="${f.label}" required class="w-full p-2 border rounded dynamic-input focus:outline-none text-sm">
+              </div>
+            `;
+          } else if (f.field_type === 'boolean') {
+            return `
+              <div>
+                <label class="block text-xs font-semibold mb-1 text-slate-700">${f.label}</label>
+                <select data-label="${f.label}" class="w-full p-2 border rounded dynamic-input focus:outline-none text-sm">
+                  <option value="Sim">Sim</option>
+                  <option value="Não">Não</option>
+                </select>
+              </div>
+            `;
+          }
+        }).join('');
+      }
+
+      container.classList.remove('hidden');
+
+      document.getElementById('record-form').onsubmit = async (e) => {
+        e.preventDefault();
+        const customerId = document.getElementById('r-client').value;
+        const sTypeId = document.getElementById('r-service').value;
+
+        const dynamic_data = {};
+        const inputs = document.querySelectorAll('.dynamic-input');
+        inputs.forEach(input => {
+          const label = input.getAttribute('data-label');
+          dynamic_data[label] = input.value;
+        });
+
+        await _supabase.from('service_records').insert({
+          customer_id: customerId,
+          service_type_id: sTypeId,
+          dynamic_data,
+          status: 'Aberto'
+        });
+
+        closeModal();
+        renderTabContent();
+      };
+    }
+
+    function closeModal() {
+      const modal = document.getElementById('modal');
+      if (modal) modal.remove();
+    }
+  </script>
+</body>
+</html>
