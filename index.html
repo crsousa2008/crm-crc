@@ -1,0 +1,162 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>CRC Telecom - CRM</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+</head>
+<body class="bg-slate-100 font-sans text-slate-800">
+
+  <script>
+    // Conexão direta com o seu banco de dados Supabase
+    const SUPABASE_URL = "https://jnjusiwhzxfzqzbfcenz.supabase.co";
+    const SUPABASE_KEY = "sb_publishable_lORGDKUVrHh8q7XIpqLMYA_yRmQ9lF1"; 
+    
+    // Inicializa o cliente do Supabase globalmente
+    const _supabase = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+  </script>
+
+  <div id="app" class="min-h-screen flex flex-col justify-center items-center">
+    <div id="loading" class="text-center">
+      <i class="fas fa-circle-notch fa-spin text-4xl text-blue-600 mb-4"></i>
+      <p class="text-slate-600 font-semibold">Carregando CRM CRC Telecom...</p>
+    </div>
+  </div>
+
+  <script>
+    const app = document.getElementById('app');
+    let session = null;
+    let activeTab = 'clientes';
+    let serviceTypes = [];
+    let selectedServiceFields = [];
+
+    // Detecta se o usuário já tem uma sessão ativa
+    window.onload = async () => {
+      const { data } = await _supabase.auth.getSession();
+      session = data.session;
+      renderApp();
+
+      // Observa mudanças no estado de login (login, logout, etc.)
+      _supabase.auth.onAuthStateChange((_event, _session) => {
+        session = _session;
+        renderApp();
+      });
+    };
+
+    function renderApp() {
+      if (!session) {
+        renderLogin();
+      } else {
+        renderDashboard();
+      }
+    }
+
+    // TELA DE LOGIN
+    function renderLogin() {
+      app.className = "min-h-screen flex flex-col justify-center items-center bg-slate-100 w-full";
+      app.innerHTML = `
+        <div class="bg-white p-8 rounded-xl shadow-lg w-full max-w-md border border-slate-200">
+          <div class="text-center mb-6">
+            <img src="https://jnjusiwhzxfzqzbfcenz.supabase.co/storage/v1/object/public/logos/logo.png" alt="CRC Telecom" class="h-16 mx-auto mb-4 object-contain">
+            <h2 class="text-2xl font-bold text-slate-800">Painel CRM</h2>
+            <p class="text-slate-500 text-sm">Entre com suas credenciais para acessar</p>
+          </div>
+          <form id="login-form" class="space-y-4">
+            <div>
+              <label class="block text-sm font-semibold mb-1 text-slate-700">E-mail</label>
+              <input type="email" id="login-email" required class="w-full p-3 border border-slate-350 rounded-lg focus:ring-2 focus:ring-blue-500 focus:outline-none" placeholder="seuemail@crctelecom.com">
+            </div>
+            <div>
+              <label class="block text-sm font-semibold mb-1 text-slate-700">Senha</label>
+              <input type="password" id="login-password" required class="w-full p-3 border border-slate-350 rounded-lg focus:ring-2 focus:ring-blue-500 focus:outline-none" placeholder="••••••••">
+            </div>
+            <button type="submit" class="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold p-3 rounded-lg transition shadow-md">Entrar</button>
+          </form>
+          <div id="login-error" class="text-red-500 text-sm mt-3 text-center hidden font-semibold"></div>
+        </div>
+      `;
+
+      document.getElementById('login-form').addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const email = document.getElementById('login-email').value;
+        const password = document.getElementById('login-password').value;
+        const errorDiv = document.getElementById('login-error');
+
+        const { error } = await _supabase.auth.signInWithPassword({ email, password });
+        if (error) {
+          errorDiv.innerText = "Erro ao entrar: " + error.message;
+          errorDiv.classList.remove('hidden');
+        }
+      });
+    }
+
+    // LAYOUT PRINCIPAL DO SISTEMA
+    function renderDashboard() {
+      app.className = "min-h-screen flex bg-slate-100 w-full";
+      app.innerHTML = `
+        <aside class="w-64 bg-slate-900 text-white flex flex-col justify-between p-4 flex-shrink-0 shadow-xl">
+          <div>
+            <div class="flex items-center gap-3 mb-8 px-2 py-4 border-b border-slate-800">
+              <img src="https://jnjusiwhzxfzqzbfcenz.supabase.co/storage/v1/object/public/logos/logo.png" alt="CRC Telecom" class="h-10 w-auto object-contain">
+              <div class="flex flex-col">
+                <span class="font-bold text-xs tracking-wider text-slate-200">CRC TELECOM</span>
+                <span class="text-[9px] text-emerald-400 font-semibold tracking-wider">CRM SISTEMA</span>
+              </div>
+            </div>
+
+            <nav class="space-y-1">
+              <button onclick="changeTab('clientes')" class="w-full text-left px-4 py-2.5 rounded-lg flex items-center gap-3 transition ${activeTab === 'clientes' ? 'bg-blue-600 text-white font-bold shadow' : 'hover:bg-slate-800 text-slate-400'}">
+                <i class="fas fa-users w-5 text-center"></i> Clientes
+              </button>
+              <button onclick="changeTab('servicos')" class="w-full text-left px-4 py-2.5 rounded-lg flex items-center gap-3 transition ${activeTab === 'servicos' ? 'bg-blue-600 text-white font-bold shadow' : 'hover:bg-slate-800 text-slate-400'}">
+                <i class="fas fa-cogs w-5 text-center"></i> Configurar Serviços
+              </button>
+              <button onclick="changeTab('atendimentos')" class="w-full text-left px-4 py-2.5 rounded-lg flex items-center gap-3 transition ${activeTab === 'atendimentos' ? 'bg-blue-600 text-white font-bold shadow' : 'hover:bg-slate-800 text-slate-400'}">
+                <i class="fas fa-clipboard-list w-5 text-center"></i> Atendimentos
+              </button>
+            </nav>
+          </div>
+
+          <div class="border-t border-slate-800 pt-4">
+            <p class="text-xs text-slate-400 truncate mb-2"><i class="fas fa-user-circle mr-1"></i> ${session.user.email}</p>
+            <button onclick="logout()" class="w-full text-left text-xs text-red-400 hover:text-red-300 flex items-center gap-2 font-semibold">
+              <i class="fas fa-sign-out-alt"></i> Sair do Painel
+            </button>
+          </div>
+        </aside>
+
+        <main class="flex-grow p-8 overflow-y-auto" id="main-content">
+          </main>
+      `;
+
+      renderTabContent();
+    }
+
+    function changeTab(tabName) {
+      activeTab = tabName;
+      renderDashboard();
+    }
+
+    async function logout() {
+      await _supabase.auth.signOut();
+    }
+
+    // RENDERIZADOR DE TELAS INTERNAS
+    async function renderTabContent() {
+      const container = document.getElementById('main-content');
+      
+      if (activeTab === 'clientes') {
+        container.innerHTML = `
+          <div class="flex justify-between items-center mb-6">
+            <h1 class="text-2xl font-bold text-slate-850">Gestão de Clientes</h1>
+            <button onclick="openClientModal()" class="bg-blue-600 text-white px-4 py-2 rounded-lg font-bold hover:bg-blue-700 transition shadow">
+              <i class="fas fa-plus"></i> Novo Cliente
+            </button>
+          </div>
+          <div class="bg-white rounded-xl shadow border border-slate-200 overflow-hidden">
+            <table class="w-full text-left border-collapse">
+              <thead>
+                <tr class="bg
